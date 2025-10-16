@@ -143,6 +143,8 @@ const useSafeNotifications = (): void => {
   useEffect(() => {
     if (isValidMasterCopy(safe.implementationVersionState)) return
     if (bytecodeComparison.isLoading) return
+    // Skip notification for Hetu chain (custom deployment)
+    if (safe.chainId === '560000') return
 
     const canMigrate = canMigrateUnsupportedMastercopy(safe, bytecodeComparison.result) || isMigrationToL2Possible(safe)
 

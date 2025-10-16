@@ -143,7 +143,10 @@ export const makeStore = (
   initialState?: Partial<RootState>,
   options?: MakeStoreOptions,
 ): EnhancedStore<RootState, Action> => {
+  console.log('🔧 Store: Setting Gateway URL:', GATEWAY_URL)
   setBaseUrl(GATEWAY_URL)
+
+  console.log('🔧 Store: Creating store with Gateway URL:', GATEWAY_URL)
 
   const store = configureStore({
     reducer: _hydrationReducer,

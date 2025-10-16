@@ -1,5 +1,10 @@
 import { Button } from '@mui/material'
 import useConnectWallet from '@/components/common/ConnectWallet/useConnectWallet'
+import useOnboard from '@/hooks/wallets/useOnboard'
+import useChains, { useCurrentChain } from '@/hooks/useChains'
+import { useAppSelector } from '@/store'
+import { selectRpc } from '@/store/settingsSlice'
+import { initOnboard } from '@/hooks/wallets/useOnboard'
 
 const ConnectWalletButton = ({
   onConnect,
@@ -13,10 +18,36 @@ const ConnectWalletButton = ({
   text?: string
 }): React.ReactElement => {
   const connectWallet = useConnectWallet()
+  const onboard = useOnboard()
+  const { configs } = useChains()
+  const chain = useCurrentChain()
+  const customRpc = useAppSelector(selectRpc)
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
+    console.log('🔧 ConnectWalletButton: Button clicked')
+    console.log('🔧 ConnectWalletButton: State check:', {
+      onboardExists: !!onboard,
+      configsLength: configs.length,
+      currentChain: chain?.chainId,
+      currentChainName: chain?.chainName
+    })
+
+    // Force initialize Onboard if not available
+    if (!onboard && configs.length > 0 && chain) {
+      console.log('🔧 ConnectWalletButton: Force initializing Onboard...')
+      try {
+        await initOnboard(configs, chain, customRpc)
+        console.log('🔧 ConnectWalletButton: Force initialization complete')
+        // Wait a bit for the store to update
+        setTimeout(() => connectWallet(), 100)
+      } catch (error) {
+        console.error('🔧 ConnectWalletButton: Force initialization failed:', error)
+      }
+    } else {
+      connectWallet()
+    }
+    
     onConnect?.()
-    connectWallet()
   }
 
   return (

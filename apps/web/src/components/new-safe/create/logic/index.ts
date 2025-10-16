@@ -3,6 +3,7 @@ import { type TransactionResponse, type Eip1193Provider, type Provider } from 'e
 import semverSatisfies from 'semver/functions/satisfies'
 
 import { getSafeInfo, type SafeInfo, type ChainInfo, relayTransaction } from '@safe-global/safe-gateway-typescript-sdk'
+import type { Chain } from '@safe-global/store/gateway/AUTO_GENERATED/chains'
 import { getReadOnlyProxyFactoryContract } from '@/services/contracts/safeContracts'
 import type { UrlObject } from 'url'
 import { AppRoutes } from '@/config/routes'
@@ -209,25 +210,34 @@ export const createNewUndeployedSafeWithoutSalt = (
   safeAccountConfig: Pick<ReplayedSafeProps['safeAccountConfig'], 'owners' | 'threshold'> & {
     paymentReceiver?: string
   },
-  chain: ChainInfo,
+  chain: Chain,
 ): UndeployedSafeWithoutSalt => {
   // Create universal deployment Data across chains:
   const fallbackHandlerDeployments = getCompatibilityFallbackHandlerDeployments({
     version: safeVersion,
     network: chain.chainId,
   })
-  const fallbackHandlerAddress = getCanonicalOrFirstAddress(fallbackHandlerDeployments, chain.chainId)
+  let fallbackHandlerAddress = getCanonicalOrFirstAddress(fallbackHandlerDeployments, chain.chainId)
   const safeL2Deployments = getSafeL2SingletonDeployments({ version: safeVersion, network: chain.chainId })
-  const safeL2Address = getCanonicalOrFirstAddress(safeL2Deployments, chain.chainId)
+  let safeL2Address = getCanonicalOrFirstAddress(safeL2Deployments, chain.chainId)
 
   const safeL1Deployments = getSafeSingletonDeployments({ version: safeVersion, network: chain.chainId })
-  const safeL1Address = getCanonicalOrFirstAddress(safeL1Deployments, chain.chainId)
+  let safeL1Address = getCanonicalOrFirstAddress(safeL1Deployments, chain.chainId)
 
   const safeFactoryDeployments = getProxyFactoryDeployments({ version: safeVersion, network: chain.chainId })
-  const safeFactoryAddress = getCanonicalOrFirstAddress(safeFactoryDeployments, chain.chainId)
+  let safeFactoryAddress = getCanonicalOrFirstAddress(safeFactoryDeployments, chain.chainId)
 
+  // Fallback to chain-specific contract addresses if deployments not found
   if (!safeL2Address || !safeL1Address || !safeFactoryAddress || !fallbackHandlerAddress) {
-    throw new Error('No Safe deployment found')
+    // Use contract addresses from chain configuration as fallback
+    fallbackHandlerAddress = fallbackHandlerAddress || chain.contractAddresses.fallbackHandlerAddress || undefined
+    safeL2Address = safeL2Address || chain.contractAddresses.safeSingletonAddress || undefined
+    safeL1Address = safeL1Address || chain.contractAddresses.safeSingletonAddress || undefined
+    safeFactoryAddress = safeFactoryAddress || chain.contractAddresses.safeProxyFactoryAddress || undefined
+    
+    if (!safeL2Address || !safeL1Address || !safeFactoryAddress || !fallbackHandlerAddress) {
+      throw new Error('No Safe deployment found')
+    }
   }
 
   const safeToL2SetupDeployments = getSafeToL2SetupDeployments({ version: '1.4.1', network: chain.chainId })
@@ -235,10 +245,22 @@ export const createNewUndeployedSafeWithoutSalt = (
   const safeToL2SetupInterface = Safe_to_l2_setup__factory.createInterface()
 
   // Only do migration if the chain supports multiChain deployments and has a SafeToL2Setup deployment
+  const chainInfo = chain as any // Temporary workaround for type compatibility
   const includeMigration =
-    hasMultiChainCreationFeatures(chain) && semverSatisfies(safeVersion, '>=1.4.1') && Boolean(safeToL2SetupAddress)
+    hasMultiChainCreationFeatures(chainInfo) && semverSatisfies(safeVersion, '>=1.4.1') && Boolean(safeToL2SetupAddress)
+
+  console.log('🔧 createNewSafe: Master copy selection logic:', {
+    chainId: chain.chainId,
+    chainL2: chain.l2,
+    includeMigration,
+    safeL1Address,
+    safeL2Address,
+    willUseL2: !includeMigration && chain.l2,
+  })
 
   const masterCopy = includeMigration ? safeL1Address : chain.l2 ? safeL2Address : safeL1Address
+  
+  console.log('🔧 createNewSafe: Selected masterCopy:', masterCopy)
 
   const replayedSafe: Omit<ReplayedSafeProps, 'saltNonce'> = {
     factoryAddress: safeFactoryAddress,

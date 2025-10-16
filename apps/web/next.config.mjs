@@ -57,7 +57,7 @@ const withPWA = withPWAInit({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export', // static site export
+  // output: 'export', // static site export
 
   transpilePackages: ['@safe-global/store'],
   images: {
@@ -66,6 +66,20 @@ const nextConfig = {
 
   env: {
     NEXT_PUBLIC_COMMIT_HASH: commitHash,
+  },
+
+  async headers() {
+    return [
+      {
+        source: '/api/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, DELETE, OPTIONS' },
+          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization, X-Requested-With, Accept' },
+          { key: 'Access-Control-Max-Age', value: '86400' },
+        ],
+      },
+    ]
   },
 
   pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],

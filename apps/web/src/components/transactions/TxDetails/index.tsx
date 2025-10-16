@@ -7,6 +7,7 @@ import TxSigners from '@/components/transactions/TxSigners'
 import Summary from '@/components/transactions/TxDetails/Summary'
 import TxData from '@/components/transactions/TxDetails/TxData'
 import useChainId from '@/hooks/useChainId'
+import { TransactionStatus } from '@safe-global/safe-gateway-typescript-sdk'
 import {
   isAwaitingExecution,
   isOrderTxInfo,
@@ -204,6 +205,17 @@ const TxDetails = ({
   const chainId = useChainId()
   const { safe } = useSafeInfo()
 
+  // ✅ 为所有未完成的交易启用轮询，避免前端缓存导致状态不更新
+  // 🔧 修复：对于已执行但可能还在索引的交易，也需要轮询直到状态确定为 SUCCESS/FAILED/CANCELLED
+  const shouldPoll = 
+    isOpenSwapOrder(txSummary.txInfo) ||
+    txSummary.txStatus === TransactionStatus.AWAITING_CONFIRMATIONS ||
+    txSummary.txStatus === TransactionStatus.AWAITING_EXECUTION ||
+    // 新增：只要不是最终状态，就继续轮询（处理 Transaction Service 索引延迟问题）
+    (txSummary.txStatus !== TransactionStatus.SUCCESS && 
+     txSummary.txStatus !== TransactionStatus.FAILED &&
+     txSummary.txStatus !== TransactionStatus.CANCELLED)
+
   const {
     data: txDetailsData,
     error,
@@ -213,7 +225,7 @@ const TxDetails = ({
   } = useGetTransactionDetailsQuery(
     { chainId, txId: txSummary.id },
     {
-      pollingInterval: isOpenSwapOrder(txSummary.txInfo) ? POLLING_INTERVAL : undefined,
+      pollingInterval: shouldPoll ? POLLING_INTERVAL : undefined,
       skipPollingIfUnfocused: true,
     },
   )

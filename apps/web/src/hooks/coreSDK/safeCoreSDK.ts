@@ -34,8 +34,29 @@ export const initSafeSDK = async ({
   let isL1SafeSingleton = chainId === chains.eth
   let contractNetworks: ContractNetworksConfig | undefined
 
+  // Hetu chain (560000) is not in official deployments
+  // Even though implementationVersionState is UP_TO_DATE, we need to provide contract addresses
+  // ✅ Updated to use SafeL2 singleton for proper L2 mode event indexing
+  if (chainId === '560000') {
+    contractNetworks = {
+      [chainId]: {
+        safeSingletonAddress: '0x7d99a4206FbC06d58777B5882bdD653C2eFAa3ef', // ✅ SafeL2 (NEW deployment 2025-10-15)
+        safeProxyFactoryAddress: '0x4A07C197b4941E6e799BD2ec2d54cA027d1378fc',
+        multiSendAddress: '0x1D24ed12633D75f9f92Ae6FD4Ed97F31286aDadD',
+        multiSendCallOnlyAddress: '0xE98d0015def933563564e4cDCe03cB22A714d3f5',
+        fallbackHandlerAddress: '0xeAdA9F4747A3e87699C383CF631bca5E4d694423',
+        signMessageLibAddress: '0x648a3927F00f58e5e1C716204470324f01D57aD2',
+        createCallAddress: '0x83C47f4AFD68256c175E8fD6d90E7481848893C3',
+        simulateTxAccessorAddress: '0x651C732647453C039C65CB8B213eF545b7a51076',
+      },
+    }
+    isL1SafeSingleton = false // SafeL2, not L1
+    safeVersion = version || '1.4.1' // Updated to 1.4.1
+  }
+
+  // For Hetu chain, skip the official deployment check since we provide custom contractNetworks
   // If it is an official deployment we should still initiate the safeSDK
-  if (!isValidMasterCopy(implementationVersionState)) {
+  if (chainId !== '560000' && !isValidMasterCopy(implementationVersionState)) {
     const masterCopy = implementation
 
     const safeL1Deployment = getSafeSingletonDeployments({ network: chainId, version: safeVersion })

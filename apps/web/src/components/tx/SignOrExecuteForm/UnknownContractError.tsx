@@ -28,7 +28,8 @@ const UnknownContractError = ({ txData }: { txData: TransactionData | undefined 
   const isMigrationPossible =
     canMigrateUnsupportedMastercopy(safe, bytecodeComparison.result) || isMigrationToL2Possible(safe)
 
-  if (!isUnknown || isMigrationTx) return null
+  // Skip error for Hetu chain (custom deployment)
+  if (!isUnknown || isMigrationTx || safe.chainId === '560000') return null
 
   return (
     <ErrorMessage level="error">

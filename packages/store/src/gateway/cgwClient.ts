@@ -85,12 +85,18 @@ export const dynamicBaseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBas
 ) => {
   const resolvedBaseUrl = getBaseUrl()
 
+  console.log('🔧 dynamicBaseQuery: Called with args:', args)
+  console.log('🔧 dynamicBaseQuery: Base URL:', resolvedBaseUrl)
+
   if (!resolvedBaseUrl) {
+    console.error('🔧 dynamicBaseQuery: baseUrl not set!')
     throw new Error('baseUrl not set. Call setBaseUrl before using the cgwClient')
   }
 
   const urlEnd = typeof args === 'string' ? args : args.url
   const adjustedUrl = `${resolvedBaseUrl}${urlEnd}`
+  
+  console.log('🔧 dynamicBaseQuery: Adjusted URL:', adjustedUrl)
 
   // Check for credential override in extraOptions (this is where RTK Query passes the options)
   const forceOmitCredentials =
@@ -107,6 +113,14 @@ export const dynamicBaseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBas
   }
 
   const response = await rawBaseQuery(adjustedArgs, api, extraOptions)
+
+  console.log('🔧 dynamicBaseQuery: Response received:', response.meta?.response?.status, response.error ? 'ERROR' : 'SUCCESS')
+  if (response.error) {
+    console.error('🔧 dynamicBaseQuery: Error details:', JSON.stringify(response.error, null, 2))
+  }
+  if (response.data) {
+    console.log('🔧 dynamicBaseQuery: Success - data type:', typeof response.data)
+  }
 
   // Apply platform-specific response handling
   if (response.meta?.response) {

@@ -9,6 +9,13 @@ const MAX_CHAINS = 40
 export const useLoadChains = () => {
   const { data, isLoading, error } = useChainsGetChainsV1Query({ cursor: `limit=${MAX_CHAINS}` })
 
+  console.log('🔧 useLoadChains:', {
+    dataLength: data?.results?.length || 0,
+    isLoading,
+    error: error?.toString(),
+    chains: data?.results?.map(c => ({ id: c.chainId, name: c.chainName }))
+  })
+
   // Log errors
   useEffect(() => {
     if (error) {

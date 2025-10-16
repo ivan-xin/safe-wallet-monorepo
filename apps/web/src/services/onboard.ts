@@ -25,8 +25,14 @@ export const createOnboard = (
     token: cfg.nativeCurrency.symbol,
     color: cfg.theme.backgroundColor,
     publicRpcUrl: cfg.publicRpcUri.value,
-    blockExplorerUrl: new URL(cfg.blockExplorerUriTemplate.address).origin,
+    blockExplorerUrl: cfg.blockExplorerUriTemplate.address 
+      ? new URL(cfg.blockExplorerUriTemplate.address).origin 
+      : undefined,
   }))
+
+  console.log('🔧 Onboard: Configuring chains:', chains.map(c => ({ id: c.id, label: c.label, rpcUrl: c.rpcUrl })))
+  console.log('🔧 Onboard: Current chain:', currentChain.chainId, currentChain.chainName)
+  console.log('🔧 Onboard: Available wallets:', wallets.length)
 
   onboard = Onboard({
     wallets,

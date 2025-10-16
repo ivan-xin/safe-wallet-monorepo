@@ -8,6 +8,8 @@ import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
 import type { ChainInfo } from '@safe-global/safe-gateway-typescript-sdk'
 import NetworkLogosList from '../multichain/components/NetworkLogosList'
 import useAllAddressBooks from '@/hooks/useAllAddressBooks'
+import { useRouter } from 'next/router'
+import { AppRoutes } from '@/config/routes'
 
 const CounterfactualSuccessScreen = () => {
   const [open, setOpen] = useState<boolean>(false)
@@ -22,6 +24,7 @@ const CounterfactualSuccessScreen = () => {
   const isCFCreation = event === SafeCreationEvent.AWAITING_EXECUTION
   const isMultiChain = networks.length > 1
   const chainName = isMultiChain ? '' : isCFCreation ? networks[0].chainName : chain?.chainName
+  const router = useRouter()
 
   useEffect(() => {
     const unsubFns = Object.entries(safeCreationPendingStatuses).map(([event]) =>
@@ -51,6 +54,12 @@ const CounterfactualSuccessScreen = () => {
   }, [])
 
   const onClose = () => {
+    // Navigate to Safe dashboard if we have both safeAddress and chain
+    if (safeAddress && chain) {
+      const safeUrl = `${AppRoutes.home}?safe=${chain.shortName}:${safeAddress}`
+      router.push(safeUrl)
+    }
+    
     setChainId(undefined)
     setOpen(false)
   }

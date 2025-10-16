@@ -27,7 +27,21 @@ export const useUrlChainId = (): string | undefined => {
 
   if (!shortName) return undefined
 
-  return chains[shortName] || configs.find((item) => item.shortName === shortName)?.chainId
+  // First try static chains config, then fallback to dynamic configs
+  const staticChainId = chains[shortName]
+  if (staticChainId) return staticChainId
+  
+  // For custom chains like Hetu, search in the dynamic configs
+  const dynamicChain = configs.find((item) => item.shortName === shortName)
+  if (dynamicChain) return dynamicChain.chainId
+  
+  // If shortName is already a chain ID, return it
+  if (/^\d+$/.test(shortName)) {
+    const chainExists = configs.some(item => item.chainId === shortName)
+    return chainExists ? shortName : undefined
+  }
+  
+  return undefined
 }
 
 const useWalletChainId = (): string | undefined => {
@@ -41,8 +55,17 @@ const useWalletChainId = (): string | undefined => {
 export const useChainId = (): string => {
   const urlChainId = useUrlChainId()
   const walletChainId = useWalletChainId()
+  
+  const finalChainId = urlChainId || walletChainId || String(DEFAULT_CHAIN_ID)
+  
+  console.log('🔧 useChainId:', {
+    urlChainId,
+    walletChainId,
+    DEFAULT_CHAIN_ID,
+    finalChainId
+  })
 
-  return urlChainId || walletChainId || String(DEFAULT_CHAIN_ID)
+  return finalChainId
 }
 
 export default useChainId

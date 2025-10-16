@@ -1,5 +1,5 @@
 import { Interface } from 'ethers'
-import { getSafeSingletonDeployment } from '@safe-global/safe-deployments'
+import { getSafeSingletonDeployment, getSafeL2SingletonDeployment } from '@safe-global/safe-deployments'
 import { SENTINEL_ADDRESS } from '@safe-global/protocol-kit/dist/src/utils/constants'
 import { OperationType } from '@safe-global/types-kit'
 import { sameAddress } from '@safe-global/utils/utils/addresses'
@@ -18,7 +18,24 @@ export function getRecoveryProposalTransactions({
   newThreshold: number
   newOwners: Array<AddressInfo>
 }): Array<MetaTransactionData> {
-  const safeDeployment = getSafeSingletonDeployment({ network: safe.chainId, version: safe.version ?? undefined })
+  // For Hetu chain and other custom chains, try both L1 and L2 deployments
+  let safeDeployment = getSafeSingletonDeployment({ network: safe.chainId, version: safe.version ?? undefined })
+  
+  // If L1 deployment not found, try L2 deployment (for chains like Hetu)
+  if (!safeDeployment) {
+    safeDeployment = getSafeL2SingletonDeployment({ network: safe.chainId, version: safe.version ?? undefined })
+  }
+
+  // For completely custom chains like Hetu (560000), use a fallback deployment
+  if (!safeDeployment) {
+    // Use version 1.4.1 as fallback for custom chains
+    const fallbackVersion = safe.version || '1.4.1'
+    safeDeployment = getSafeSingletonDeployment({ network: '1', version: fallbackVersion }) // Use mainnet as template
+    
+    if (!safeDeployment) {
+      safeDeployment = getSafeL2SingletonDeployment({ network: '1', version: fallbackVersion })
+    }
+  }
 
   if (!safeDeployment) {
     throw new Error('Safe deployment not found')

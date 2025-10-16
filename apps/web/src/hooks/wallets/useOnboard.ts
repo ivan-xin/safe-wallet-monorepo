@@ -33,9 +33,17 @@ export const initOnboard = async (
   currentChain: ChainInfo,
   rpcConfig: EnvState['rpc'] | undefined,
 ) => {
+  console.log('🔧 initOnboard: Starting initialization...')
+  console.log('🔧 initOnboard: Chain configs:', chainConfigs.length)
+  console.log('🔧 initOnboard: Current chain:', currentChain.chainId)
+  
   const { createOnboard } = await import('@/services/onboard')
   if (!getStore()) {
+    console.log('🔧 initOnboard: Creating new Onboard instance')
     setStore(createOnboard(chainConfigs, currentChain, rpcConfig))
+    console.log('🔧 initOnboard: Onboard instance created successfully')
+  } else {
+    console.log('🔧 initOnboard: Onboard instance already exists')
   }
 }
 
@@ -171,9 +179,17 @@ export const useInitOnboard = () => {
   const customRpc = useAppSelector(selectRpc)
   const dispatch = useAppDispatch()
 
+  console.log('🔧 useInitOnboard: Chain configs loaded:', configs.length, 'chains')
+  console.log('🔧 useInitOnboard: Current chain:', chain?.chainId, chain?.chainName)
+  console.log('🔧 useInitOnboard: Onboard instance:', !!onboard)
+
   useEffect(() => {
+    console.log('🔧 useInitOnboard: Effect triggered', { configsLength: configs.length, chainId: chain?.chainId })
     if (configs.length > 0 && chain) {
+      console.log('🔧 useInitOnboard: Initializing Onboard...')
       void initOnboard(configs, chain, customRpc)
+    } else {
+      console.log('🔧 useInitOnboard: Not ready to initialize - configs:', configs.length, 'chain:', !!chain)
     }
   }, [configs, chain, customRpc])
 
